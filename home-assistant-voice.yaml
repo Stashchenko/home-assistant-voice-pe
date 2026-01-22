@@ -95,6 +95,8 @@ wifi:
 network:
   enable_ipv6: true
 
+captive_portal:
+
 logger:
   level: DEBUG
   logs:
@@ -288,7 +290,7 @@ light:
     reset_low: 300us
     reset_high: 0us
     max_refresh_rate: 15ms
-    num_leds: 12
+    num_leds: 26
     rgb_order: GRB
     rmt_symbols: 192
     default_transition_length: 0ms
@@ -1015,17 +1017,12 @@ external_components:
       - voice_kit
     refresh: 0s
 
-audio_dac:
-  - platform: aic3204
-    id: aic3204_dac
-    i2c_id: internal_i2c
-
 micro_wake_word:
   id: mww
   microphone:
     microphone: i2s_mics
-    channels: 1
     gain_factor: 4
+    channels: 0
   stop_after_detection: false
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
