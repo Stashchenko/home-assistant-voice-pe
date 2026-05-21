@@ -26,7 +26,6 @@ substitutions:
 esphome:
   name: home-assistant-voice
   friendly_name: Home Assistant Voice
-  name_add_mac_suffix: true
   min_version: 2026.6.0
   on_boot:
     priority: 375
@@ -151,10 +150,7 @@ globals:
   - id: is_timer_active
     type: bool
     restore_value: false
-  - id: should_repeat_va
-    type: bool
-    restore_value: no
-    initial_value: 'false'
+
 switch:
   # This is the master mute switch. It is exposed to Home Assistant. The user can only turn it on and off if the hardware switch is off. (The hardware switch overrides the software one)
   - platform: template
@@ -236,17 +232,6 @@ switch:
       # If 15 minutes have passed and the timer is still ringing, stop it.
       - delay: 15min
       - switch.turn_off: timer_ringing
-
-  - platform: template
-    id: repeat_on_unknown
-    optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
-    name: Repeat on unknown
-    icon: "mdi:chat-plus"
-    turn_on_action:
-      - lambda: id(should_repeat_va) = false;
-    turn_off_action:
-      - lambda: id(should_repeat_va) = false;
 
 binary_sensor:
   - platform: status                                # device status notified to home assistant for automations
@@ -826,43 +811,6 @@ script:
                 then:
                   - micro_wake_word.disable_model: stop
 
-  - id: show_listening_timeout_effect
-    then:
-      - light.turn_on:
-          brightness: !lambda return min ( max( id(led_ring).current_values.get_brightness() , 0.2f ) + 0.1f , 1.0f );
-          red: 9.4%
-          green: 73.3%
-          blue: 94.9%
-          id: voice_assistant_leds
-          effect: "Twinkle"
-      - delay: 1s
-      # Fade out smoothly
-      - light.turn_off:
-          id: voice_assistant_leds
-          transition_length: 600ms
-
-  - id: listening_timeout
-    mode: restart
-    then:
-      - if:
-          condition:
-            switch.is_on: repeat_on_unknown
-          then:
-            - delay: 5s
-            # Re-check state after delay
-            - if:
-                condition:
-                  - lambda: 'return id(voice_assistant_phase) == ${voice_assist_waiting_for_command_phase_id};'
-                then:
-                  - script.execute: show_listening_timeout_effect
-                  - lambda: id(should_repeat_va) = false;
-                  - voice_assistant.stop
-                  # set small fade and back to idle
-                  - delay: 2s
-                  - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
-                  - script.execute: control_leds
-
-
 i2s_audio:
   - id: i2s_output
     i2s_lrclk_pin: GPIO19
@@ -1128,11 +1076,6 @@ voice_assistant:
   on_listening:
     - lambda: id(voice_assistant_phase) = ${voice_assist_waiting_for_command_phase_id};
     - script.execute: control_leds
-    - if:
-        condition:
-          switch.is_on: repeat_on_unknown
-        then:
-          - script.execute: listening_timeout
   on_stt_vad_start:
     - lambda: id(voice_assistant_phase) = ${voice_assist_listening_for_command_phase_id};
     - script.execute: control_leds
@@ -1159,28 +1102,6 @@ voice_assistant:
           - script.execute: control_leds
           # Start a script that would potentially enable the stop word if the response is longer than a second
           - script.execute: activate_stop_word_once
-          - if:
-              condition:
-                switch.is_on: repeat_on_unknown
-              then:
-                - lambda: |-
-                    std::string text = x.c_str();
-                    if (!text.empty() && text.back() == '?') {
-                      id(should_repeat_va) = true;
-                      return;
-                    }
-                    for (auto & c : text) c = tolower(c);
-
-                    std::vector<std::string> not_understood_phrases = {
-                      "couldn't understand","any device","no matching device", "any area"
-                    };
-
-                    for (const auto & phrase : not_understood_phrases) {
-                      if (text.find(phrase) != std::string::npos) {
-                        id(should_repeat_va) = true;
-                        break;
-                      }
-                    }
   # When the voice assistant ends ...
   on_end:
     - wait_until:
@@ -1197,22 +1118,9 @@ voice_assistant:
           lambda: return id(voice_assistant_phase) == ${voice_assist_error_phase_id};
         then:
           - delay: 1s
-    # if we have the flag should_repeat_va on unknown command we should repeat listening
-    - if:
-        condition:
-          lambda: 'return id(should_repeat_va);'
-        then:
-          - delay: 500ms
-          - lambda: 'id(should_repeat_va) = false;'
-          - voice_assistant.start
-          - lambda: id(voice_assistant_phase) = ${voice_assist_waiting_for_command_phase_id};
-          - script.execute: control_leds
-    - if:
-        condition:
-          lambda: return id(voice_assistant_phase) != ${voice_assist_waiting_for_command_phase_id};
-        then:
-          - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
-          - script.execute: control_leds
+    # Reset the voice assistant phase id and reset the LED animations.
+    - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+    - script.execute: control_leds
   on_timer_finished:
     - switch.turn_on: timer_ringing
   on_timer_started:
