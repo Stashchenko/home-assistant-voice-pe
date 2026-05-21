@@ -92,9 +92,6 @@ wifi:
   on_disconnect:
     - script.execute: control_leds
 
-network:
-  enable_ipv6: true
-
 captive_portal:
 
 logger:
@@ -209,7 +206,7 @@ switch:
       # Disable stop wake word
       - micro_wake_word.disable_model: stop
       - script.execute: disable_repeat
-      # Stop any current annoucement (ie: stop the timer ring mid playback)
+      # Stop any current announcement (ie: stop the timer ring mid playback)
       - if:
           condition:
             media_player.is_announcing:
@@ -980,7 +977,7 @@ media_player:
         - sendspin_media_source
     volume_increment: 0.05
     volume_min: 0.4
-    volume_max: 0.85
+    volume_max: 0.9
     on_mute:
       - script.execute: control_leds
     on_unmute:
@@ -1079,6 +1076,7 @@ micro_wake_word:
 select:
   - platform: template
     name: "Wake word sensitivity"
+    id: wake_word_sensitivity
     optimistic: true
     initial_option: Slightly sensitive
     restore_value: true
@@ -1095,13 +1093,13 @@ select:
       lambda: |-
         if (x == "Slightly sensitive") {
           id(okay_nabu).set_probability_cutoff(217);    // 0.85 -> 0.000 FAPH on DipCo (Manifest's default)
-          id(hey_jarvis).set_probability_cutoff(247);   // 0.97 -> 0.563 FAPH on DipCo (Manifest's default)         
+          id(hey_jarvis).set_probability_cutoff(217);   // 0.97 -> 0.563 FAPH on DipCo (Manifest's default)         
         } else if (x == "Moderately sensitive") {
           id(okay_nabu).set_probability_cutoff(176);    // 0.69 -> 0.376 FAPH on DipCo
-          id(hey_jarvis).set_probability_cutoff(235);   // 0.92 -> 0.939 FAPH on DipCo         
+          id(hey_jarvis).set_probability_cutoff(176);   // 0.92 -> 0.939 FAPH on DipCo         
         } else if (x == "Very sensitive") {
           id(okay_nabu).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH on DipCo
-          id(hey_jarvis).set_probability_cutoff(212);   // 0.83 -> 1.502 FAPH on DipCo         
+          id(hey_jarvis).set_probability_cutoff(143);   // 0.83 -> 1.502 FAPH on DipCo         
         }
 
 voice_assistant:
@@ -1248,20 +1246,12 @@ button:
 debug:
   update_interval: 5s
 
-
-
 text_sensor:
   # Send IP Address
   - platform: wifi_info
     ip_address:
       name: IP
       icon: mdi:ip-network
-    ssid:
-      name: SSID
-      icon: mdi:router-wireless
-
-    mac_address:
-      name: Wifi Address
 
 sensor:
   - platform: wifi_signal
