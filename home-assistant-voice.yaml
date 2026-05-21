@@ -151,7 +151,6 @@ globals:
   - id: is_timer_active
     type: bool
     restore_value: false
-  # if we get tts ? or could't underdatn we set this value to true
   - id: should_repeat_va
     type: bool
     restore_value: no
@@ -1180,6 +1179,10 @@ voice_assistant:
               then:
                 - lambda: |-
                     std::string text = x.c_str();
+                    if (!text.empty() && text.back() == '?') {
+                      id(should_repeat_va) = true;
+                      return;
+                    }
                     for (auto & c : text) c = tolower(c);
 
                     std::vector<std::string> not_understood_phrases = {
