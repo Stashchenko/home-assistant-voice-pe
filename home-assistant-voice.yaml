@@ -94,9 +94,12 @@ wifi:
 captive_portal:
 
 logger:
-  level: DEBUG
+  level: ERROR
+  baud_rate: 0
   logs:
-    sensor: WARN  # avoids logging debug sensor updates
+    esp-idf: NONE
+    md_reader: NONE
+    md_decoder: NONE
 
 api:
   id: api_id
@@ -820,7 +823,6 @@ i2s_audio:
     i2s_lrclk_pin: GPIO3  #WS
     i2s_bclk_pin: GPIO2 #SCK
 
-
 microphone:
   - platform: i2s_audio
     id: i2s_mics
@@ -952,7 +954,7 @@ micro_wake_word:
   microphone:
     microphone: i2s_mics
     channels: 0
-    gain_factor: 4
+    gain_factor: 3
   stop_after_detection: false
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
@@ -1019,20 +1021,16 @@ select:
       - Moderately sensitive
       - Very sensitive
     on_value:
-      # Sets specific wake word probabilities computed for each particular model
-      # Note probability cutoffs are set as a quantized uint8 value, each comment has the corresponding floating point cutoff
-      # False Accepts per Hour values are tested against all units and channels from the Dinner Party Corpus.
-      # These cutoffs apply only to the specific models included in the firmware: okay_nabu@20241226.3, hey_jarvis@v2, hey_mycroft@v2
       lambda: |-
         if (x == "Slightly sensitive") {
-          id(okay_nabu).set_probability_cutoff(217);    // 0.85 -> 0.000 FAPH on DipCo (Manifest's default)
-          id(hey_jarvis).set_probability_cutoff(217);   // 0.97 -> 0.563 FAPH on DipCo (Manifest's default)         
+          id(okay_nabu).set_probability_cutoff(240);
+          id(hey_jarvis).set_probability_cutoff(240);
         } else if (x == "Moderately sensitive") {
-          id(okay_nabu).set_probability_cutoff(176);    // 0.69 -> 0.376 FAPH on DipCo
-          id(hey_jarvis).set_probability_cutoff(176);   // 0.92 -> 0.939 FAPH on DipCo         
+          id(okay_nabu).set_probability_cutoff(200);
+          id(hey_jarvis).set_probability_cutoff(200);
         } else if (x == "Very sensitive") {
-          id(okay_nabu).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH on DipCo
-          id(hey_jarvis).set_probability_cutoff(143);   // 0.83 -> 1.502 FAPH on DipCo         
+          id(okay_nabu).set_probability_cutoff(143);
+          id(hey_jarvis).set_probability_cutoff(143);
         }
 
 voice_assistant:
@@ -1044,7 +1042,7 @@ voice_assistant:
   micro_wake_word: mww
   use_wake_word: false
   noise_suppression_level: 1
-  auto_gain: 17 dbfs
+  auto_gain: 10 dbfs
   volume_multiplier: 1
   on_client_connected:
     - lambda: id(init_in_progress) = false;
