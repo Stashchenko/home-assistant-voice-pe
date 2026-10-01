@@ -276,7 +276,7 @@ light:
     reset_high: 0us
     max_refresh_rate: 15ms
     num_leds: 26
-    rgb_order: GRB
+    channel_colors: GRB
     rmt_symbols: 192
     default_transition_length: 0ms
 
