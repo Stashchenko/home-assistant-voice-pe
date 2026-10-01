@@ -26,7 +26,7 @@ substitutions:
 esphome:
   name: home-assistant-voice
   friendly_name: Home Assistant Voice
-  name_add_mac_suffix: true
+  name_add_mac_suffix: false
   min_version: 2026.9.0
   on_boot:
     priority: 375
@@ -113,7 +113,7 @@ api:
 
 ota:
   - platform: esphome
-    password: "b5c10a8511fdaf65d2f526d94a73e392"
+    encryption:
 
 psram:
   mode: octal
@@ -901,6 +901,7 @@ media_source:
     buffer_size: 500000
   - platform: sendspin
     id: sendspin_media_source
+    codecs: [FLAC, PCM]  # Prefer FLAC for Sendspin
     fixed_delay: 480 microseconds  # The AIC3204 DAC used, as configured, on the VPE delays audio by 480 microseconds
 
 media_player:
@@ -1038,14 +1039,14 @@ select:
     on_value:
       lambda: |-
         if (x == "Slightly sensitive") {
-          id(okay_nabu).set_probability_cutoff(240);
-          id(hey_jarvis).set_probability_cutoff(240);
+          id(okay_nabu).set_probability_cutoff(217);
+          id(hey_jarvis).set_probability_cutoff(247);
         } else if (x == "Moderately sensitive") {
-          id(okay_nabu).set_probability_cutoff(200);
-          id(hey_jarvis).set_probability_cutoff(200);
+          id(okay_nabu).set_probability_cutoff(176);
+          id(hey_jarvis).set_probability_cutoff(235);
         } else if (x == "Very sensitive") {
           id(okay_nabu).set_probability_cutoff(143);
-          id(hey_jarvis).set_probability_cutoff(143);
+          id(hey_jarvis).set_probability_cutoff(212);  
         }
 
 voice_assistant:
