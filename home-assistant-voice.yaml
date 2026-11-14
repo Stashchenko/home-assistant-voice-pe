@@ -98,9 +98,7 @@ logger:
   level: ERROR
   baud_rate: 0
   logs:
-    esp-idf: NONE
-    md_reader: NONE
-    md_decoder: NONE
+    sensor: WARN  # avoids logging debug sensor updates
 
 api:
   id: api_id
@@ -505,6 +503,23 @@ light:
       - addressable_rainbow:
           name: "Rainbow"
           width: 26
+      - addressable_lambda:
+          name: "Tick"
+          update_interval: 333ms
+          lambda: |-
+            static uint8_t index = 0;
+            Color color(255, 0, 0);
+            if (initial_run) {
+              index = 0;
+            }
+            for (uint8_t i = 0; i < 26; i++) {
+              if (i <= index ) {
+                it[i] = Color::BLACK;
+              } else {
+                it[i] = color;
+              }
+            }
+            index = (index + 1) % 26;
   # User facing LED ring. Remapping of the internal LEDs.
   # Exposed to be used by the user.
   - platform: partition
@@ -810,20 +825,16 @@ script:
               cutoff = 77;                                // 0.30
             }
             id(okay_nabu).set_probability_cutoff(cutoff);
-            id(hey_jarvis).set_probability_cutoff(cutoff);
-            id(hey_mycroft).set_probability_cutoff(cutoff);
+            id(hey_jarvis).set_probability_cutoff(cutoff);            
           } else if (sensitivity == "Slightly sensitive") {
             id(okay_nabu).set_probability_cutoff(217);    // 0.85 -> 0.000 FAPH on DipCo (Manifest's default)
-            id(hey_jarvis).set_probability_cutoff(247);   // 0.97 -> 0.563 FAPH on DipCo (Manifest's default)
-            id(hey_mycroft).set_probability_cutoff(253);  // 0.99 -> 0.567 FAPH on DipCo
+            id(hey_jarvis).set_probability_cutoff(247);   // 0.97 -> 0.563 FAPH on DipCo (Manifest's default)            
           } else if (sensitivity == "Moderately sensitive") {
             id(okay_nabu).set_probability_cutoff(176);    // 0.69 -> 0.376 FAPH on DipCo
-            id(hey_jarvis).set_probability_cutoff(235);   // 0.92 -> 0.939 FAPH on DipCo
-            id(hey_mycroft).set_probability_cutoff(242);  // 0.95 -> 1.502 FAPH on DipCo (Manifest's default)
+            id(hey_jarvis).set_probability_cutoff(235);   // 0.92 -> 0.939 FAPH on DipCo            
           } else if (sensitivity == "Very sensitive") {
             id(okay_nabu).set_probability_cutoff(143);    // 0.56 -> 0.751 FAPH on DipCo
-            id(hey_jarvis).set_probability_cutoff(212);   // 0.83 -> 1.502 FAPH on DipCo
-            id(hey_mycroft).set_probability_cutoff(237);  // 0.93 -> 1.878 FAPH on DipCo
+            id(hey_jarvis).set_probability_cutoff(212);   // 0.83 -> 1.502 FAPH on DipCo            
           }
 
   # Script used activate the stop word if the TTS step is long.
@@ -1012,8 +1023,8 @@ micro_wake_word:
   id: mww
   microphone:
     microphone: i2s_mics
-    gain_factor: 4
     channels: 0
+    gain_factor: 4
   stop_after_detection: false
   models:
     - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
@@ -1057,15 +1068,7 @@ micro_wake_word:
                           else:
                             - if:
                                 condition:
-                                  lambda: return id(va).is_wake_word_audio_active();
-                                then:
-                                  - lambda: id(voice_assistant_phase) = ${voice_assist_waiting_for_command_phase_id};
-                                  - script.execute: control_leds
-                            - if:
-                                condition:
-                                  and:
-                                    - switch.is_on: wake_sound
-                                    - lambda: return !id(va).is_wake_word_audio_active();
+                                  switch.is_off: master_mute_switch
                                 then:
                                   - script.execute:
                                       id: play_sound
@@ -1101,8 +1104,8 @@ voice_assistant:
     buffer_duration: 1500ms
     timeout: 2s
   use_wake_word: false
-  noise_suppression_level: 1
-  auto_gain: 10 dbfs
+  noise_suppression_level: 0
+  auto_gain: 0 dbfs
   volume_multiplier: 1
   on_client_connected:
     - lambda: id(init_in_progress) = false;
